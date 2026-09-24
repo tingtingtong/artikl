@@ -4,7 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Artikl — CA checker demo</title>
-<meta name="description" content="Artikl demo: client dump → Excel books pack → GST-2B exceptions → CA sign-off. Never auto-files."/>
+<meta name="description" content="Artikl demo: dump + 2B → job → Excel books pack → exception chips → CA sign-off. Never auto-files."/>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
   :root { --bg:#0f1419; --card:#1a2332; --line:#2a3548; --text:#e8eef7; --muted:#8b9bb4;
     --high:#e85d5d; --med:#e0a84a; --low:#6b8cae; --ok:#3dba7a; --accent:#5b8def; }
@@ -15,174 +16,487 @@
   header h1 { font-size:1.1rem; margin:0; font-weight:650; }
   header .tag { font-size:.75rem; color:var(--muted); }
   header a { color:var(--accent); font-size:.8rem; text-decoration:none; }
-  .note { margin:0 1.5rem; margin-top:1rem; padding:.65rem .85rem; border-radius:10px;
+  nav.tabs { display:flex; gap:.35rem; margin-left:auto; }
+  nav.tabs button { border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:8px; padding:.35rem .7rem; font-size:.8rem; cursor:pointer; }
+  nav.tabs button.on { background:var(--card); color:var(--text); border-color:var(--accent); }
+  .note { margin:1rem 1.5rem 0; padding:.65rem .85rem; border-radius:10px;
     background:#152033; border:1px solid var(--line); font-size:.8rem; color:var(--muted); max-width:1170px; }
-  main { display:grid; grid-template-columns: 1.2fr .8fr; gap:1rem; padding:1rem 1.5rem; max-width:1200px; margin:0 auto; }
-  @media (max-width:900px){ main { grid-template-columns:1fr; } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; }
+  .note b { color:var(--text); }
+  main { padding:1rem 1.5rem; max-width:1200px; margin:0 auto; }
+  .grid2 { display:grid; grid-template-columns: 1.2fr .8fr; gap:1rem; }
+  @media (max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:1rem; }
   h2 { font-size:.95rem; margin:0 0 .75rem; }
-  table { width:100%; border-collapse:collapse; font-size:.8rem; }
+  h3 { font-size:.85rem; margin:0 0 .5rem; }
+  table { width:100%; border-collapse:collapse; font-size:.78rem; }
   th, td { text-align:left; padding:.4rem .35rem; border-bottom:1px solid var(--line); vertical-align:top; }
   th { color:var(--muted); font-weight:550; }
   .blank { color:var(--muted); font-style:italic; }
+  .chip { display:inline-block; font-size:.65rem; font-weight:700; padding:.12rem .4rem; border-radius:999px; margin:0 .15rem .15rem 0; letter-spacing:.02em; }
+  .chip.high { background:rgba(232,93,93,.2); color:var(--high); }
+  .chip.medium { background:rgba(224,168,74,.2); color:var(--med); }
+  .chip.low { background:rgba(107,140,174,.2); color:var(--low); }
+  .chip.ok { background:rgba(61,186,122,.15); color:var(--ok); }
   .sev { font-size:.7rem; font-weight:700; text-transform:uppercase; padding:.15rem .4rem; border-radius:999px; }
   .sev.high { background:rgba(232,93,93,.2); color:var(--high); }
   .sev.medium { background:rgba(224,168,74,.2); color:var(--med); }
   .sev.low { background:rgba(107,140,174,.2); color:var(--low); }
   .ex { border:1px solid var(--line); border-radius:10px; padding:.75rem; margin-bottom:.6rem; }
   .ex.high { border-color:rgba(232,93,93,.4); }
-  .ex h3 { margin:0 0 .35rem; font-size:.85rem; }
   .ex p { margin:.2rem 0; font-size:.78rem; color:var(--muted); }
-  .btns { display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap; }
-  button { border:1px solid var(--line); background:#243044; color:var(--text); border-radius:8px;
-    padding:.35rem .65rem; font-size:.75rem; cursor:pointer; }
-  button:hover { border-color:var(--accent); }
+  .btns { display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap; align-items:center; }
+  button, .filebtn { border:1px solid var(--line); background:#243044; color:var(--text); border-radius:8px;
+    padding:.4rem .75rem; font-size:.78rem; cursor:pointer; }
+  button:hover, .filebtn:hover { border-color:var(--accent); }
   button.active { background:var(--ok); border-color:var(--ok); color:#062; font-weight:600; }
+  button.primary { background:var(--accent); border-color:var(--accent); font-weight:600; }
   .sign { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line); }
   .sign label { display:flex; gap:.5rem; align-items:flex-start; font-size:.85rem; }
   #status { font-size:.8rem; margin-top:.5rem; color:var(--muted); }
   #status.ok { color:var(--ok); }
   #status.bad { color:var(--high); }
-  .banner { font-size:.75rem; background:#152033; border:1px solid var(--line); padding:.5rem .75rem; border-radius:8px; color:var(--muted); }
+  .banner { font-size:.75rem; background:#152033; border:1px solid var(--line); padding:.5rem .75rem; border-radius:8px; color:var(--muted); margin-bottom:.75rem; }
+  .jobrow { display:grid; grid-template-columns: 1.4fr .7fr .8fr auto; gap:.75rem; align-items:center;
+    padding:.75rem; border:1px solid var(--line); border-radius:10px; margin-bottom:.5rem; }
+  @media (max-width:700px){ .jobrow { grid-template-columns:1fr; } }
+  .st { font-size:.72rem; font-weight:700; text-transform:uppercase; padding:.2rem .5rem; border-radius:999px; display:inline-block; }
+  .st.Intake { background:rgba(107,140,174,.2); color:var(--low); }
+  .st.Packing { background:rgba(224,168,74,.2); color:var(--med); }
+  .st.Ready { background:rgba(61,186,122,.15); color:var(--ok); }
+  .metrics { font-size:.72rem; color:var(--muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .metrics span b { color:var(--text); font-weight:600; }
+  label.field { display:block; font-size:.75rem; color:var(--muted); margin:.5rem 0 .25rem; }
+  input[type=text] { width:100%; max-width:420px; background:#0f1419; border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:.45rem .6rem; font-size:.85rem; }
+  input[type=file] { font-size:.75rem; color:var(--muted); }
+  .hidden { display:none !important; }
+  footer.silent { margin:0 1.5rem 1.5rem; max-width:1170px; font-size:.7rem; color:#5a6a82; }
 </style>
 </head>
 <body>
 <header>
   <h1>Artikl · CA checker demo</h1>
-  <span class="tag" id="meta">Loading…</span>
-  <span class="tag">No GSTN write · Never auto-file</span>
+  <span class="tag">Never auto-file · Never touches GSTN</span>
+  <a href="never-auto-fill.html">What we never auto-fill</a>
   <a href="../">← Landing</a>
+  <nav class="tabs">
+    <button type="button" id="tab-jobs" class="on" onclick="showView('jobs')">Jobs</button>
+    <button type="button" id="tab-checker" onclick="showView('checker')">Checker</button>
+  </nav>
 </header>
-<p class="note">Public demo for pilot walkthroughs. Sample client: Sunrise Retail (anonymised). Artikl is maker; you are checker. Nothing ever files itself.</p>
+<p class="note"><b>Maker</b> = Artikl (+ articled clerk) extracts and blanks uncertain fields.
+<b>Checker</b> = CA clears / defers / drops every <b>high</b>, then signs off. If Artikl isn’t sure, the cell stays empty and the reason is on the row.</p>
+
 <main>
-  <section class="card">
-    <h2>Books pack (Excel)</h2>
-    <p class="banner">Maker output. Blanks are intentional. Only INV-2401 is a clean fill.</p>
-    <div style="overflow:auto; max-height:70vh;">
-      <table id="books"><thead></thead><tbody></tbody></table>
+  <section id="view-jobs">
+    <div class="card">
+      <h2>Client jobs</h2>
+      <p class="banner">Drop dump + client-uploaded 2B → one job. Status: Intake → Packing → Ready for checker. Email/forward uses the same path.</p>
+      <div id="job-list"></div>
+    </div>
+    <div class="card">
+      <h2>New job</h2>
+      <label class="field">Client name</label>
+      <input type="text" id="client-name" placeholder="e.g. Sunrise Retail Pvt Ltd" value=""/>
+      <label class="field">Dump workbook (xlsx with Extract_Candidate_Rows) — or use sample</label>
+      <input type="file" id="dump-file" accept=".xlsx,.xls"/>
+      <label class="field">GSTR-2B upload (JSON) — client-uploaded, not portal scrape</label>
+      <input type="file" id="twob-file" accept=".json"/>
+      <div class="btns" style="margin-top:.85rem;">
+        <button type="button" class="primary" onclick="createJobFromUploads()">Create job &amp; pack</button>
+        <button type="button" onclick="loadSampleJob()">Load Sunrise sample</button>
+      </div>
+      <p id="job-msg" class="banner" style="margin-top:.75rem;"></p>
     </div>
   </section>
-  <section class="card">
-    <h2>Exception list — highs first</h2>
-    <div id="exceptions"></div>
-    <div class="sign">
-      <label>
-        <input type="checkbox" id="confirm"/>
-        <span>I have reviewed this pack. Artikl did not file anything.</span>
-      </label>
-      <div class="btns" style="margin-top:.75rem;">
-        <button id="signbtn">CA approve / sign-off</button>
-        <button id="resetbtn" type="button">Reset demo</button>
+
+  <section id="view-checker" class="hidden">
+    <div class="metrics" id="metrics-bar" style="margin-bottom:.75rem;"></div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Books pack (Excel) <span id="job-title" class="tag"></span></h2>
+        <p class="banner">Blanks are intentional. Exception chips on the row = why. Only clean matches are fully filled.</p>
+        <div style="overflow:auto; max-height:70vh;">
+          <table id="books"><thead></thead><tbody></tbody></table>
+        </div>
       </div>
-      <div id="status"></div>
+      <div class="card">
+        <h2>Exception list — highs first</h2>
+        <div id="exceptions"></div>
+        <div class="sign">
+          <label>
+            <input type="checkbox" id="confirm"/>
+            <span>I have reviewed this pack. Artikl did not file anything.</span>
+          </label>
+          <div class="btns" style="margin-top:.75rem;">
+            <button type="button" id="signbtn">CA approve / sign-off</button>
+            <button type="button" id="resetbtn">Reset checker</button>
+          </div>
+          <div id="status"></div>
+        </div>
+      </div>
     </div>
   </section>
 </main>
-<script>
-const KEY = 'artikl-demo-state-v1';
-const order = {high:0, medium:1, low:2};
-let pack = null;
+<footer class="silent" id="silent-metrics">Silent pilot metrics logged locally in this browser only.</footer>
 
-function loadState(){
-  try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
-  catch { return {}; }
+<script>
+const JOBS_KEY = 'artikl-demo-jobs-v2';
+const ACTIVE_KEY = 'artikl-demo-active-v2';
+const SEVERITY = {
+  ITC_UNCLEAR:'high', POS_AMBIGUOUS:'high', RCM_SUSPECT:'high', CN_VS_INV:'high',
+  GSTIN_INVALID:'high', '2B_UNMATCHED':'high', '2B_PARTIAL':'medium', HSN_RATE_AMBIG:'medium',
+  PARTY_UNMAPPED:'medium', LOW_CONF_EXTRACT:'medium', DOC_UNREADABLE:'low', DUP_SUSPECT:'medium'
+};
+const META = {
+  '2B_UNMATCHED':['taxable+tax','Invoice not in client 2B upload','Ask client for revised 2B or drop voucher'],
+  '2B_PARTIAL':['cgst/sgst','Extract tax differs from 2B','Blank tax; CA reconciles to 2B or bill'],
+  GSTIN_INVALID:['gstin','GSTIN fails format/portal check','Blank GSTIN; verify with client'],
+  RCM_SUSPECT:['tax/rcm','GTA-like; 2B shows RCM Y, bill face untaxed','Do not auto-book tax; CA decides RCM'],
+  CN_VS_INV:['voucher_type','Header Invoice vs credit-note body','CA confirms credit note before books'],
+  HSN_RATE_AMBIG:['rate/tax','Extract rate conflicts with 2B','Blank rate/tax; CA picks rate'],
+  POS_AMBIGUOUS:['pos/tax','CGST/SGST on extract vs IGST on 2B','Blank tax breakup; CA fixes POS'],
+  ITC_UNCLEAR:['itc','Motor vehicle / blocked-credit risk','Leave ITC flag for CA; amounts OK'],
+  PARTY_UNMAPPED:['party','Dump party ≠ books/2B ledger name','Map ledger or create party'],
+  LOW_CONF_EXTRACT:['all amounts','Model confidence below threshold','Blank; request clearer scan'],
+  DOC_UNREADABLE:['document','Image/PDF unreadable','Re-upload only'],
+  DUP_SUSPECT:['document','Same party/date/amount as earlier doc','Suppress duplicate or CA keep one']
+};
+const SHORT = {
+  'INV-2405':'Interstate GTA freight','CN-018':'Return 2 units','INV-2406':'Sanitizer bulk',
+  'INV-2407':'SaaS annual','INV-2408':'Car AC repair','INV-2409':'Plastic crates',
+  'INV-2410':'Blurry phone photo','IMG-WA-991':'WhatsApp image too dark','INV-2401A':'Laptops batch A — resent'
+};
+const order = {high:0, medium:1, low:2};
+let activePack = null;
+
+function showView(name){
+  document.getElementById('view-jobs').classList.toggle('hidden', name!=='jobs');
+  document.getElementById('view-checker').classList.toggle('hidden', name!=='checker');
+  document.getElementById('tab-jobs').classList.toggle('on', name==='jobs');
+  document.getElementById('tab-checker').classList.toggle('on', name==='checker');
+  if(name==='jobs') renderJobs();
+  if(name==='checker') renderChecker();
 }
-function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+
+function loadJobs(){ try { return JSON.parse(localStorage.getItem(JOBS_KEY)||'[]'); } catch { return []; } }
+function saveJobs(j){ localStorage.setItem(JOBS_KEY, JSON.stringify(j)); }
+function getActiveId(){ return localStorage.getItem(ACTIVE_KEY); }
+function setActiveId(id){ localStorage.setItem(ACTIVE_KEY, id); }
+
+function chipHtml(codes){
+  if(!codes) return '<span class="chip ok">CLEAN</span>';
+  return String(codes).split(',').filter(Boolean).map(c=>{
+    const sev = SEVERITY[c]||'medium';
+    return `<span class="chip ${sev}" title="${c}">${c}</span>`;
+  }).join('');
+}
 
 function blank(v){ return (v===null||v===undefined||v==='') ? '<span class="blank">—</span>' : v; }
 
-async function load(){
-  const r = await fetch('./pack.json');
-  pack = await r.json();
-  pack.state = Object.assign({decisions:{}, signed_off:false, signed_at:null}, loadState());
-  document.getElementById('meta').textContent =
-    `${pack.client} · ${pack.gstin} · ${pack.period}`;
-  renderBooks();
-  renderExceptions();
-  const s = document.getElementById('status');
-  if (pack.state.signed_off) {
-    s.className = 'ok';
-    s.textContent = `Signed off at ${pack.state.signed_at}. Filing stays with you on the portal.`;
-  } else {
-    s.className = '';
-    s.textContent = '';
+function computeMetrics(pack, dumpToPackMs, signOffMs){
+  const books = pack.books||[];
+  const filled = books.filter(b => !b.exception_codes).length;
+  const exceptioned = books.filter(b => b.exception_codes).length;
+  return {
+    dump_to_pack_ms: dumpToPackMs,
+    rows_total: books.length,
+    rows_fully_filled: filled,
+    rows_exceptioned: exceptioned,
+    pct_filled: books.length ? Math.round(1000*filled/books.length)/10 : 0,
+    pct_exceptioned: books.length ? Math.round(1000*exceptioned/books.length)/10 : 0,
+    time_to_signoff_ms: signOffMs ?? null
+  };
+}
+
+function classifyAndPack(dumpRows, twob){
+  const books=[], exceptions=[], seen=new Set();
+  for(const row of dumpRows){
+    const doc_id = String(row.doc_id);
+    const demo = String(row.demo_case||'');
+    const conf = Number(row.extract_confidence||0);
+    let party=row.party, gstin=row.party_gstin, date=row.date;
+    if(date && typeof date==='object' && date.toISOString) date=date.toISOString().slice(0,10);
+    else if(date) date=String(date).slice(0,10);
+    let vtype=row.voucher_type;
+    let taxable = row.taxable===null||row.taxable===''? null : Number(row.taxable);
+    const cgst = row.cgst===null||row.cgst===''? null : Number(row.cgst);
+    const sgst = row.sgst===null||row.sgst===''? null : Number(row.sgst);
+    const igst = row.igst===null||row.igst===''? null : Number(row.igst);
+    let tax = (cgst!=null||sgst!=null||igst!=null) ? (cgst||0)+(sgst||0)+(igst||0) : null;
+    let hsn = row.hsn_sac!=null ? String(row.hsn_sac) : null;
+    let narration = row.narration;
+    const rate = row.rate===null||row.rate===''? null : Number(row.rate);
+    let codes=[];
+    const tw = twob[doc_id];
+    if(demo && demo!=='CLEAN_MATCH') codes.push(demo);
+    else {
+      if(conf<0.5) codes.push(conf>=0.2?'LOW_CONF_EXTRACT':'DOC_UNREADABLE');
+      if(gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(String(gstin))) codes.push('GSTIN_INVALID');
+      if(!tw && taxable!=null && conf>=0.5) codes.push('2B_UNMATCHED');
+      if(tw){
+        if(String(tw.reverse_charge||'N').toUpperCase()==='Y' && (tax||0)===0) codes.push('RCM_SUSPECT');
+        const c2=(Number(tw.cgst)||0)+(Number(tw.sgst)||0)+(Number(tw.igst)||0);
+        if(taxable!=null && Math.abs((tax||0)-c2)>1) codes.push('2B_PARTIAL');
+        if((igst||0)===0 && (Number(tw.igst)||0)>0) codes.push('POS_AMBIGUOUS');
+      }
+      const key = `${party}|${date}|${taxable}|${gstin}`;
+      if(seen.has(key) && taxable!=null) codes.push('DUP_SUSPECT');
+      if(taxable!=null) seen.add(key);
+    }
+    codes = [...new Set(codes.filter(c=>SEVERITY[c]))];
+    let amount_out=taxable, tax_out=tax, gstin_out=gstin, party_out=party, date_out=date, vtype_out=vtype, hsn_out=hsn, narr_out=narration;
+    for(const code of codes){
+      const [field, reason0, action] = META[code];
+      let reason=reason0;
+      if(code==='2B_PARTIAL' && tw) reason=`Extract ${cgst||0}/${sgst||0} vs 2B ${tw.cgst||0}/${tw.sgst||0}`;
+      if(code==='HSN_RATE_AMBIG') reason=`Extract ${rate||0}% vs 2B 18% IGST`;
+      if(code==='PARTY_UNMAPPED' && tw) reason=`Dump name ≠ books/2B (${tw.supplier_name})`;
+      if(code==='LOW_CONF_EXTRACT') reason=`Confidence ${conf}`;
+      if(code==='DOC_UNREADABLE') reason='Image too dark';
+      if(code==='DUP_SUSPECT') reason='Same party/date/amount as INV-2401';
+      if(code==='ITC_UNCLEAR') reason='Motor vehicle repair — possible blocked credit';
+      exceptions.push({code, severity:SEVERITY[code], field, source_doc:doc_id, reason, suggested_action:action});
+      if(code==='2B_UNMATCHED'){ amount_out=null; tax_out=null; }
+      else if(code==='2B_PARTIAL'||code==='RCM_SUSPECT'||code==='HSN_RATE_AMBIG'||code==='POS_AMBIGUOUS'){ tax_out=null; }
+      else if(code==='GSTIN_INVALID'){ gstin_out=null; }
+      else if(code==='CN_VS_INV'||code==='DUP_SUSPECT'){ amount_out=null; tax_out=null; }
+      else if(code==='PARTY_UNMAPPED'){ party_out=null; }
+      else if(code==='LOW_CONF_EXTRACT'||code==='DOC_UNREADABLE'){
+        amount_out=tax_out=gstin_out=party_out=date_out=vtype_out=hsn_out=null;
+      }
+    }
+    if(SHORT[doc_id]) narr_out=SHORT[doc_id];
+    books.push({party:party_out, date:date_out, voucher_type:vtype_out, amount:amount_out, tax:tax_out,
+      hsn_sac:hsn_out, gstin:gstin_out, narration:narr_out, exception_codes: codes.length?codes.join(','):null, doc_id});
+  }
+  return {books, exceptions};
+}
+
+function parseDumpXlsx(buf){
+  const wb = XLSX.read(buf, {type:'array'});
+  const name = wb.SheetNames.find(n=>n==='Extract_Candidate_Rows') || wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {defval:null});
+  if(!rows.length || !('doc_id' in rows[0])) throw new Error('Dump needs Extract_Candidate_Rows with doc_id column');
+  return rows;
+}
+
+async function loadSampleJob(){
+  const msg = document.getElementById('job-msg');
+  msg.textContent = 'Loading Sunrise sample…';
+  const t0 = performance.now();
+  const pack = await (await fetch('./pack.json')).json();
+  const dumpToPack = Math.round(performance.now()-t0);
+  pack.metrics = computeMetrics(pack, pack.metrics?.dump_to_pack_ms || dumpToPack, null);
+  const job = {
+    id: 'sample-sunrise-aug2026',
+    client_name: pack.client,
+    gstin: pack.gstin,
+    period: pack.period,
+    status: 'Ready',
+    source: 'sample',
+    created_at: new Date().toISOString(),
+    pack,
+    decisions: {},
+    signed_off: false,
+    signed_at: null,
+    signoff_started_at: null
+  };
+  const jobs = loadJobs().filter(j=>j.id!==job.id);
+  jobs.unshift(job);
+  saveJobs(jobs);
+  setActiveId(job.id);
+  msg.textContent = 'Sunrise sample ready for checker.';
+  renderJobs();
+  showView('checker');
+}
+
+async function createJobFromUploads(){
+  const msg = document.getElementById('job-msg');
+  const client = document.getElementById('client-name').value.trim() || 'Untitled client';
+  const dumpF = document.getElementById('dump-file').files[0];
+  const twobF = document.getElementById('twob-file').files[0];
+  if(!dumpF || !twobF){
+    msg.textContent = 'Need both dump xlsx and 2B JSON. Or click Load Sunrise sample.';
+    return;
+  }
+  const id = `job-${Date.now()}`;
+  let jobs = loadJobs();
+  const draft = {
+    id, client_name: client, gstin:null, period:null, status:'Intake', source:'upload',
+    created_at: new Date().toISOString(), pack:null, decisions:{}, signed_off:false, signed_at:null, signoff_started_at:null
+  };
+  jobs.unshift(draft); saveJobs(jobs); renderJobs();
+  msg.textContent = 'Intake…';
+  draft.status='Packing'; saveJobs(jobs); renderJobs();
+  try {
+    const t0 = performance.now();
+    const dumpRows = parseDumpXlsx(await dumpF.arrayBuffer());
+    const twobJson = JSON.parse(await twobF.text());
+    const twob = {};
+    for(const row of (twobJson.b2b||[])) twob[String(row.invoice_number).trim()] = row;
+    const {books, exceptions} = classifyAndPack(dumpRows, twob);
+    const dumpToPack = Math.round(performance.now()-t0);
+    const pack = {
+      client: client,
+      gstin: twobJson.client_gstin || null,
+      period: twobJson.return_period || null,
+      books, exceptions,
+      maker:'Artikl (+ articled clerk)', checker:'CA / partner',
+      rule:'AI prepares. CA decides. Never auto-file.',
+      metrics: null
+    };
+    pack.metrics = computeMetrics(pack, dumpToPack, null);
+    draft.gstin = pack.gstin; draft.period = pack.period;
+    draft.pack = pack; draft.status='Ready';
+    saveJobs(jobs); setActiveId(id);
+    msg.textContent = `Packed in ${dumpToPack} ms — ${pack.metrics.rows_exceptioned} exceptioned / ${pack.metrics.rows_fully_filled} clean.`;
+    renderJobs(); showView('checker');
+  } catch(err){
+    draft.status='Intake'; draft.error=String(err.message||err);
+    saveJobs(jobs); renderJobs();
+    msg.textContent = 'Pack failed: '+draft.error+' (use sample schema or Load Sunrise sample)';
   }
 }
 
-function renderBooks(){
-  const th = document.querySelector('#books thead');
-  const tb = document.querySelector('#books tbody');
-  const cols = ['party','date','voucher_type','amount','tax','hsn_sac','gstin','narration','exception_codes'];
-  th.innerHTML = '<tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
-  tb.innerHTML = pack.books.map(row =>
-    '<tr>' + cols.map(c=>`<td>${blank(row[c])}</td>`).join('') + '</tr>'
-  ).join('');
-}
-
-function renderExceptions(){
-  const el = document.getElementById('exceptions');
-  const sorted = [...pack.exceptions].sort((a,b)=> order[a.severity]-order[b.severity]);
-  el.innerHTML = sorted.map(e => {
-    const key = `${e.source_doc}:${e.code}`;
-    const cur = (pack.state.decisions||{})[key] || '';
-    return `<div class="ex ${e.severity}">
-      <h3><span class="sev ${e.severity}">${e.severity}</span> ${e.code} · ${e.source_doc}</h3>
-      <p><b>Field:</b> ${e.field}</p>
-      <p>${e.reason}</p>
-      <p><b>Suggested:</b> ${e.suggested_action}</p>
+function renderJobs(){
+  const el = document.getElementById('job-list');
+  const jobs = loadJobs();
+  if(!jobs.length){
+    el.innerHTML = '<p class="banner">No jobs yet. Load the Sunrise sample or upload dump + 2B.</p>';
+    return;
+  }
+  el.innerHTML = jobs.map(j=>{
+    const m = j.pack?.metrics;
+    const met = m ? `<span class="metrics"><span>pack <b>${m.dump_to_pack_ms}ms</b></span><span>filled <b>${m.pct_filled}%</b></span><span>exceptioned <b>${m.pct_exceptioned}%</b></span>${m.time_to_signoff_ms!=null?`<span>sign-off <b>${Math.round(m.time_to_signoff_ms/1000)}s</b></span>`:''}</span>` : '';
+    return `<div class="jobrow">
+      <div><b>${j.client_name}</b><div class="tag">${j.gstin||'—'} · ${j.period||'—'} · ${j.source}</div>${met}</div>
+      <div><span class="st ${j.status}">${j.status}</span></div>
+      <div class="tag">${j.signed_off?'Signed off':'Awaiting checker'}</div>
       <div class="btns">
-        ${['Cleared','Deferred','Dropped'].map(d =>
-          `<button class="${cur===d?'active':''}" onclick="decide('${e.source_doc}','${e.code}','${d}')">${d}</button>`
-        ).join('')}
+        <button type="button" class="primary" ${j.status!=='Ready'?'disabled':''} onclick="openJob('${j.id}')">Open checker</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function decide(doc, code, decision){
-  const st = loadState();
-  st.decisions = st.decisions || {};
-  st.decisions[`${doc}:${code}`] = decision;
-  st.signed_off = false;
-  st.signed_at = null;
-  saveState(st);
-  load();
+function openJob(id){ setActiveId(id); showView('checker'); }
+
+function activeJob(){
+  const id = getActiveId();
+  return loadJobs().find(j=>j.id===id) || loadJobs().find(j=>j.status==='Ready') || null;
 }
 
-document.getElementById('signbtn').onclick = () => {
-  const confirm = document.getElementById('confirm').checked;
+function persistJob(job){
+  const jobs = loadJobs().map(j=> j.id===job.id ? job : j);
+  saveJobs(jobs);
+}
+
+function renderChecker(){
+  const job = activeJob();
   const s = document.getElementById('status');
-  const st = loadState();
-  st.decisions = st.decisions || {};
-  const highs = pack.exceptions.filter(e => e.severity === 'high');
-  const missing = highs
-    .map(e => `${e.source_doc}:${e.code}`)
-    .filter(k => !st.decisions[k]);
-  if (missing.length) {
-    s.className = 'bad';
-    s.textContent = `Clear every high first: ${missing.join(', ')}`;
+  if(!job || !job.pack){
+    document.getElementById('job-title').textContent = '';
+    document.getElementById('books').querySelector('tbody').innerHTML = '';
+    document.getElementById('exceptions').innerHTML = '<p class="banner">No Ready job. Create one from the Jobs tab.</p>';
+    document.getElementById('metrics-bar').innerHTML = '';
     return;
   }
-  if (!confirm) {
-    s.className = 'bad';
-    s.textContent = 'Tick the review confirmation first.';
-    return;
-  }
-  st.signed_off = true;
-  st.signed_at = new Date().toISOString();
-  saveState(st);
-  s.className = 'ok';
-  s.textContent = `Signed off at ${st.signed_at}. Filing stays with you on the portal.`;
-  load();
+  if(!job.signoff_started_at){ job.signoff_started_at = Date.now(); persistJob(job); }
+  activePack = job.pack;
+  document.getElementById('job-title').textContent = `· ${job.client_name}`;
+  const m = job.pack.metrics||{};
+  document.getElementById('metrics-bar').innerHTML =
+    `<span>dump→pack <b>${m.dump_to_pack_ms??'—'} ms</b></span>
+     <span>rows filled <b>${m.rows_fully_filled??0}/${m.rows_total??0}</b> (${m.pct_filled??0}%)</span>
+     <span>exceptioned <b>${m.pct_exceptioned??0}%</b></span>
+     <span>time-to-sign-off <b>${m.time_to_signoff_ms!=null?Math.round(m.time_to_signoff_ms/1000)+'s':'—'}</b></span>`;
+  document.getElementById('silent-metrics').textContent =
+    `Silent metrics (this browser): dump→pack ${m.dump_to_pack_ms}ms · filled ${m.pct_filled}% · exceptioned ${m.pct_exceptioned}%` +
+    (m.time_to_signoff_ms!=null?` · sign-off ${Math.round(m.time_to_signoff_ms/1000)}s`:'') +
+    '. Not sent anywhere.';
+
+  const cols = ['party','date','voucher_type','amount','tax','hsn_sac','gstin','narration','why'];
+  const th = document.querySelector('#books thead');
+  const tb = document.querySelector('#books tbody');
+  th.innerHTML = '<tr>'+cols.map(c=>`<th>${c==='why'?'why (chips)':c}</th>`).join('')+'</tr>';
+  tb.innerHTML = job.pack.books.map(row=>{
+    return '<tr>'+cols.map(c=>{
+      if(c==='why') return `<td>${chipHtml(row.exception_codes)}</td>`;
+      return `<td>${blank(row[c])}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+
+  const el = document.getElementById('exceptions');
+  const sorted = [...job.pack.exceptions].sort((a,b)=>order[a.severity]-order[b.severity]);
+  el.innerHTML = sorted.map(e=>{
+    const key = `${e.source_doc}:${e.code}`;
+    const cur = (job.decisions||{})[key]||'';
+    return `<div class="ex ${e.severity}">
+      <h3><span class="sev ${e.severity}">${e.severity}</span> <span class="chip ${e.severity}">${e.code}</span> · ${e.source_doc}</h3>
+      <p><b>Field:</b> ${e.field}</p>
+      <p>${e.reason}</p>
+      <p><b>Suggested:</b> ${e.suggested_action}</p>
+      <div class="btns">
+        ${['Cleared','Deferred','Dropped'].map(d=>
+          `<button type="button" class="${cur===d?'active':''}" onclick="decide('${job.id}','${e.source_doc}','${e.code}','${d}')">${d}</button>`
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  if(job.signed_off){
+    s.className='ok';
+    s.textContent=`Signed off at ${job.signed_at}. Filing stays with you on the portal.`;
+  } else { s.className=''; s.textContent=''; }
+}
+
+function decide(jobId, doc, code, decision){
+  const jobs = loadJobs();
+  const job = jobs.find(j=>j.id===jobId);
+  if(!job) return;
+  job.decisions = job.decisions||{};
+  job.decisions[`${doc}:${code}`]=decision;
+  job.signed_off=false; job.signed_at=null;
+  if(job.pack?.metrics) job.pack.metrics.time_to_signoff_ms=null;
+  saveJobs(jobs);
+  renderChecker();
+}
+
+document.getElementById('signbtn').onclick = ()=>{
+  const job = activeJob();
+  const s = document.getElementById('status');
+  if(!job) return;
+  const highs = (job.pack.exceptions||[]).filter(e=>e.severity==='high');
+  const missing = highs.map(e=>`${e.source_doc}:${e.code}`).filter(k=>!(job.decisions||{})[k]);
+  if(missing.length){ s.className='bad'; s.textContent='Clear every high first: '+missing.join(', '); return; }
+  if(!document.getElementById('confirm').checked){ s.className='bad'; s.textContent='Tick the review confirmation first.'; return; }
+  job.signed_off=true;
+  job.signed_at=new Date().toISOString();
+  const started = job.signoff_started_at || Date.now();
+  job.pack.metrics = job.pack.metrics||{};
+  job.pack.metrics.time_to_signoff_ms = Date.now()-started;
+  persistJob(job);
+  s.className='ok';
+  s.textContent=`Signed off at ${job.signed_at}. Filing stays with you on the portal.`;
+  renderChecker();
 };
 
-document.getElementById('resetbtn').onclick = () => {
-  localStorage.removeItem(KEY);
-  document.getElementById('confirm').checked = false;
-  load();
+document.getElementById('resetbtn').onclick = ()=>{
+  const job = activeJob();
+  if(!job) return;
+  job.decisions={}; job.signed_off=false; job.signed_at=null;
+  job.signoff_started_at=Date.now();
+  if(job.pack?.metrics) job.pack.metrics.time_to_signoff_ms=null;
+  document.getElementById('confirm').checked=false;
+  persistJob(job);
+  renderChecker();
 };
 
-load();
+// boot
+renderJobs();
+if(getActiveId() && activeJob()?.pack) showView('checker');
+else showView('jobs');
 </script>
 </body>
 </html>

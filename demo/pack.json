@@ -259,5 +259,29 @@
       "suggested_action": "Suppress duplicate or CA keep one"
     }
   ],
-  "rule": "AI prepares. CA decides. Never auto-file."
+  "rule": "AI prepares. CA decides. Never auto-file.",
+  "severity_by_code": {
+    "2B_UNMATCHED": "high",
+    "2B_PARTIAL": "medium",
+    "GSTIN_INVALID": "high",
+    "RCM_SUSPECT": "high",
+    "CN_VS_INV": "high",
+    "HSN_RATE_AMBIG": "medium",
+    "POS_AMBIGUOUS": "high",
+    "ITC_UNCLEAR": "high",
+    "PARTY_UNMAPPED": "medium",
+    "LOW_CONF_EXTRACT": "medium",
+    "DOC_UNREADABLE": "low",
+    "DUP_SUSPECT": "medium"
+  },
+  "maker": "Artikl (+ articled clerk)",
+  "checker": "CA / partner",
+  "metrics": {
+    "dump_to_pack_ms": 180,
+    "rows_total": 13,
+    "rows_fully_filled": 1,
+    "rows_exceptioned": 12,
+    "pct_filled": 7.7,
+    "pct_exceptioned": 92.3
+  }
 }
