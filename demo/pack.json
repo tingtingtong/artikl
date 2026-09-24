@@ -1,0 +1,263 @@
+{
+  "job_id": "20260924T155735Z-sunrise-retail-pvt-ltd",
+  "client": "Sunrise Retail Pvt Ltd",
+  "gstin": "27AABCS1234D1Z5",
+  "period": "2026-08",
+  "books": [
+    {
+      "party": "Nova Distributors",
+      "date": "2026-08-03",
+      "voucher_type": "Purchase",
+      "amount": 50000.0,
+      "tax": 9000.0,
+      "hsn_sac": "8471",
+      "gstin": "27AADCN9988E1Z2",
+      "narration": "Laptops batch A",
+      "exception_codes": null,
+      "doc_id": "INV-2401"
+    },
+    {
+      "party": "QuickPack Logistics",
+      "date": "2026-08-05",
+      "voucher_type": "Purchase",
+      "amount": null,
+      "tax": null,
+      "hsn_sac": "9965",
+      "gstin": "27AAACQ4455F1Z8",
+      "narration": "Local freight Aug",
+      "exception_codes": "2B_UNMATCHED",
+      "doc_id": "INV-2402"
+    },
+    {
+      "party": "Bharat Stationery Mart",
+      "date": "2026-08-08",
+      "voucher_type": "Purchase",
+      "amount": 8000.0,
+      "tax": null,
+      "hsn_sac": "4820",
+      "gstin": "27AABCB2211G1Z3",
+      "narration": "Office supplies",
+      "exception_codes": "2B_PARTIAL",
+      "doc_id": "INV-2403"
+    },
+    {
+      "party": "Metro Print Works",
+      "date": "2026-08-10",
+      "voucher_type": "Purchase",
+      "amount": 3500.0,
+      "tax": 630.0,
+      "hsn_sac": "4911",
+      "gstin": null,
+      "narration": "Print banners",
+      "exception_codes": "GSTIN_INVALID",
+      "doc_id": "INV-2404"
+    },
+    {
+      "party": "Deccan Road Carriers",
+      "date": "2026-08-12",
+      "voucher_type": "Purchase",
+      "amount": 22000.0,
+      "tax": null,
+      "hsn_sac": "996511",
+      "gstin": "29AABCD6677H1Z1",
+      "narration": "Interstate GTA freight",
+      "exception_codes": "RCM_SUSPECT",
+      "doc_id": "INV-2405"
+    },
+    {
+      "party": "Nova Distributors",
+      "date": "2026-08-14",
+      "voucher_type": "Credit Note",
+      "amount": null,
+      "tax": null,
+      "hsn_sac": "8471",
+      "gstin": "27AADCN9988E1Z2",
+      "narration": "Return 2 units",
+      "exception_codes": "CN_VS_INV",
+      "doc_id": "CN-018"
+    },
+    {
+      "party": "SafeChem Industries",
+      "date": "2026-08-16",
+      "voucher_type": "Purchase",
+      "amount": 15000.0,
+      "tax": null,
+      "hsn_sac": "3808",
+      "gstin": "24AAACS3344J1Z6",
+      "narration": "Sanitizer bulk",
+      "exception_codes": "HSN_RATE_AMBIG",
+      "doc_id": "INV-2406"
+    },
+    {
+      "party": "CloudSoft Solutions",
+      "date": "2026-08-18",
+      "voucher_type": "Purchase",
+      "amount": 30000.0,
+      "tax": null,
+      "hsn_sac": "9983",
+      "gstin": "29AABCC7788K1Z4",
+      "narration": "SaaS annual",
+      "exception_codes": "POS_AMBIGUOUS",
+      "doc_id": "INV-2407"
+    },
+    {
+      "party": "Pune Auto Care",
+      "date": "2026-08-20",
+      "voucher_type": "Purchase",
+      "amount": 9500.0,
+      "tax": 1710.0,
+      "hsn_sac": "8708",
+      "gstin": "27AAACP5566L1Z9",
+      "narration": "Car AC repair",
+      "exception_codes": "ITC_UNCLEAR",
+      "doc_id": "INV-2408"
+    },
+    {
+      "party": null,
+      "date": "2026-08-22",
+      "voucher_type": "Purchase",
+      "amount": 2800.0,
+      "tax": 504.0,
+      "hsn_sac": "3926",
+      "gstin": "27AAACU1122M1Z0",
+      "narration": "Plastic crates",
+      "exception_codes": "PARTY_UNMAPPED",
+      "doc_id": "INV-2409"
+    },
+    {
+      "party": null,
+      "date": null,
+      "voucher_type": null,
+      "amount": null,
+      "tax": null,
+      "hsn_sac": null,
+      "gstin": null,
+      "narration": "Blurry phone photo",
+      "exception_codes": "LOW_CONF_EXTRACT",
+      "doc_id": "INV-2410"
+    },
+    {
+      "party": null,
+      "date": null,
+      "voucher_type": null,
+      "amount": null,
+      "tax": null,
+      "hsn_sac": null,
+      "gstin": null,
+      "narration": "WhatsApp image too dark",
+      "exception_codes": "DOC_UNREADABLE",
+      "doc_id": "IMG-WA-991"
+    },
+    {
+      "party": "Nova Distributors",
+      "date": "2026-08-03",
+      "voucher_type": "Purchase",
+      "amount": null,
+      "tax": null,
+      "hsn_sac": "8471",
+      "gstin": "27AADCN9988E1Z2",
+      "narration": "Laptops batch A \u2014 resent",
+      "exception_codes": "DUP_SUSPECT",
+      "doc_id": "INV-2401A"
+    }
+  ],
+  "exceptions": [
+    {
+      "code": "2B_UNMATCHED",
+      "severity": "high",
+      "field": "taxable+tax",
+      "source_doc": "INV-2402",
+      "reason": "Invoice not in client 2B upload",
+      "suggested_action": "Ask client for revised 2B or drop voucher"
+    },
+    {
+      "code": "2B_PARTIAL",
+      "severity": "medium",
+      "field": "cgst/sgst",
+      "source_doc": "INV-2403",
+      "reason": "Extract 720/720 vs 2B 600/600",
+      "suggested_action": "Blank tax; CA reconciles to 2B or bill"
+    },
+    {
+      "code": "GSTIN_INVALID",
+      "severity": "high",
+      "field": "gstin",
+      "source_doc": "INV-2404",
+      "reason": "GSTIN fails format/portal check",
+      "suggested_action": "Blank GSTIN; verify with client"
+    },
+    {
+      "code": "RCM_SUSPECT",
+      "severity": "high",
+      "field": "tax/rcm",
+      "source_doc": "INV-2405",
+      "reason": "GTA-like; 2B shows RCM Y, bill face untaxed",
+      "suggested_action": "Do not auto-book tax; CA decides RCM"
+    },
+    {
+      "code": "CN_VS_INV",
+      "severity": "high",
+      "field": "voucher_type",
+      "source_doc": "CN-018",
+      "reason": "Header Invoice vs credit-note body",
+      "suggested_action": "CA confirms credit note before books"
+    },
+    {
+      "code": "HSN_RATE_AMBIG",
+      "severity": "medium",
+      "field": "rate/tax",
+      "source_doc": "INV-2406",
+      "reason": "Extract 12% vs 2B 18% IGST",
+      "suggested_action": "Blank rate/tax; CA picks rate"
+    },
+    {
+      "code": "POS_AMBIGUOUS",
+      "severity": "high",
+      "field": "pos/tax",
+      "source_doc": "INV-2407",
+      "reason": "CGST/SGST on extract vs IGST on 2B",
+      "suggested_action": "Blank tax breakup; CA fixes POS"
+    },
+    {
+      "code": "ITC_UNCLEAR",
+      "severity": "high",
+      "field": "itc",
+      "source_doc": "INV-2408",
+      "reason": "Motor vehicle repair \u2014 possible blocked credit",
+      "suggested_action": "Leave ITC flag for CA; amounts OK"
+    },
+    {
+      "code": "PARTY_UNMAPPED",
+      "severity": "medium",
+      "field": "party",
+      "source_doc": "INV-2409",
+      "reason": "Dump name \u2260 books/2B (Uday Plastics)",
+      "suggested_action": "Map ledger or create party"
+    },
+    {
+      "code": "LOW_CONF_EXTRACT",
+      "severity": "medium",
+      "field": "all amounts",
+      "source_doc": "INV-2410",
+      "reason": "Confidence 0.41",
+      "suggested_action": "Blank; request clearer scan"
+    },
+    {
+      "code": "DOC_UNREADABLE",
+      "severity": "low",
+      "field": "document",
+      "source_doc": "IMG-WA-991",
+      "reason": "Image too dark",
+      "suggested_action": "Re-upload only"
+    },
+    {
+      "code": "DUP_SUSPECT",
+      "severity": "medium",
+      "field": "document",
+      "source_doc": "INV-2401A",
+      "reason": "Same party/date/amount as INV-2401",
+      "suggested_action": "Suppress duplicate or CA keep one"
+    }
+  ],
+  "rule": "AI prepares. CA decides. Never auto-file."
+}

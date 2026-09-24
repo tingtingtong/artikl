@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Artikl — CA checker demo</title>
+<meta name="description" content="Artikl demo: client dump → Excel books pack → GST-2B exceptions → CA sign-off. Never auto-files."/>
+<style>
+  :root { --bg:#0f1419; --card:#1a2332; --line:#2a3548; --text:#e8eef7; --muted:#8b9bb4;
+    --high:#e85d5d; --med:#e0a84a; --low:#6b8cae; --ok:#3dba7a; --accent:#5b8def; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.45; }
+  header { padding:1rem 1.5rem; border-bottom:1px solid var(--line); display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:1.1rem; margin:0; font-weight:650; }
+  header .tag { font-size:.75rem; color:var(--muted); }
+  header a { color:var(--accent); font-size:.8rem; text-decoration:none; }
+  .note { margin:0 1.5rem; margin-top:1rem; padding:.65rem .85rem; border-radius:10px;
+    background:#152033; border:1px solid var(--line); font-size:.8rem; color:var(--muted); max-width:1170px; }
+  main { display:grid; grid-template-columns: 1.2fr .8fr; gap:1rem; padding:1rem 1.5rem; max-width:1200px; margin:0 auto; }
+  @media (max-width:900px){ main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; }
+  h2 { font-size:.95rem; margin:0 0 .75rem; }
+  table { width:100%; border-collapse:collapse; font-size:.8rem; }
+  th, td { text-align:left; padding:.4rem .35rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:550; }
+  .blank { color:var(--muted); font-style:italic; }
+  .sev { font-size:.7rem; font-weight:700; text-transform:uppercase; padding:.15rem .4rem; border-radius:999px; }
+  .sev.high { background:rgba(232,93,93,.2); color:var(--high); }
+  .sev.medium { background:rgba(224,168,74,.2); color:var(--med); }
+  .sev.low { background:rgba(107,140,174,.2); color:var(--low); }
+  .ex { border:1px solid var(--line); border-radius:10px; padding:.75rem; margin-bottom:.6rem; }
+  .ex.high { border-color:rgba(232,93,93,.4); }
+  .ex h3 { margin:0 0 .35rem; font-size:.85rem; }
+  .ex p { margin:.2rem 0; font-size:.78rem; color:var(--muted); }
+  .btns { display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap; }
+  button { border:1px solid var(--line); background:#243044; color:var(--text); border-radius:8px;
+    padding:.35rem .65rem; font-size:.75rem; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.active { background:var(--ok); border-color:var(--ok); color:#062; font-weight:600; }
+  .sign { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line); }
+  .sign label { display:flex; gap:.5rem; align-items:flex-start; font-size:.85rem; }
+  #status { font-size:.8rem; margin-top:.5rem; color:var(--muted); }
+  #status.ok { color:var(--ok); }
+  #status.bad { color:var(--high); }
+  .banner { font-size:.75rem; background:#152033; border:1px solid var(--line); padding:.5rem .75rem; border-radius:8px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Artikl · CA checker demo</h1>
+  <span class="tag" id="meta">Loading…</span>
+  <span class="tag">No GSTN write · Never auto-file</span>
+  <a href="../">← Landing</a>
+</header>
+<p class="note">Public demo for pilot walkthroughs. Sample client: Sunrise Retail (anonymised). Artikl is maker; you are checker. Nothing ever files itself.</p>
+<main>
+  <section class="card">
+    <h2>Books pack (Excel)</h2>
+    <p class="banner">Maker output. Blanks are intentional. Only INV-2401 is a clean fill.</p>
+    <div style="overflow:auto; max-height:70vh;">
+      <table id="books"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Exception list — highs first</h2>
+    <div id="exceptions"></div>
+    <div class="sign">
+      <label>
+        <input type="checkbox" id="confirm"/>
+        <span>I have reviewed this pack. Artikl did not file anything.</span>
+      </label>
+      <div class="btns" style="margin-top:.75rem;">
+        <button id="signbtn">CA approve / sign-off</button>
+        <button id="resetbtn" type="button">Reset demo</button>
+      </div>
+      <div id="status"></div>
+    </div>
+  </section>
+</main>
+<script>
+const KEY = 'artikl-demo-state-v1';
+const order = {high:0, medium:1, low:2};
+let pack = null;
+
+function loadState(){
+  try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+
+function blank(v){ return (v===null||v===undefined||v==='') ? '<span class="blank">—</span>' : v; }
+
+async function load(){
+  const r = await fetch('./pack.json');
+  pack = await r.json();
+  pack.state = Object.assign({decisions:{}, signed_off:false, signed_at:null}, loadState());
+  document.getElementById('meta').textContent =
+    `${pack.client} · ${pack.gstin} · ${pack.period}`;
+  renderBooks();
+  renderExceptions();
+  const s = document.getElementById('status');
+  if (pack.state.signed_off) {
+    s.className = 'ok';
+    s.textContent = `Signed off at ${pack.state.signed_at}. Filing stays with you on the portal.`;
+  } else {
+    s.className = '';
+    s.textContent = '';
+  }
+}
+
+function renderBooks(){
+  const th = document.querySelector('#books thead');
+  const tb = document.querySelector('#books tbody');
+  const cols = ['party','date','voucher_type','amount','tax','hsn_sac','gstin','narration','exception_codes'];
+  th.innerHTML = '<tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  tb.innerHTML = pack.books.map(row =>
+    '<tr>' + cols.map(c=>`<td>${blank(row[c])}</td>`).join('') + '</tr>'
+  ).join('');
+}
+
+function renderExceptions(){
+  const el = document.getElementById('exceptions');
+  const sorted = [...pack.exceptions].sort((a,b)=> order[a.severity]-order[b.severity]);
+  el.innerHTML = sorted.map(e => {
+    const key = `${e.source_doc}:${e.code}`;
+    const cur = (pack.state.decisions||{})[key] || '';
+    return `<div class="ex ${e.severity}">
+      <h3><span class="sev ${e.severity}">${e.severity}</span> ${e.code} · ${e.source_doc}</h3>
+      <p><b>Field:</b> ${e.field}</p>
+      <p>${e.reason}</p>
+      <p><b>Suggested:</b> ${e.suggested_action}</p>
+      <div class="btns">
+        ${['Cleared','Deferred','Dropped'].map(d =>
+          `<button class="${cur===d?'active':''}" onclick="decide('${e.source_doc}','${e.code}','${d}')">${d}</button>`
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function decide(doc, code, decision){
+  const st = loadState();
+  st.decisions = st.decisions || {};
+  st.decisions[`${doc}:${code}`] = decision;
+  st.signed_off = false;
+  st.signed_at = null;
+  saveState(st);
+  load();
+}
+
+document.getElementById('signbtn').onclick = () => {
+  const confirm = document.getElementById('confirm').checked;
+  const s = document.getElementById('status');
+  const st = loadState();
+  st.decisions = st.decisions || {};
+  const highs = pack.exceptions.filter(e => e.severity === 'high');
+  const missing = highs
+    .map(e => `${e.source_doc}:${e.code}`)
+    .filter(k => !st.decisions[k]);
+  if (missing.length) {
+    s.className = 'bad';
+    s.textContent = `Clear every high first: ${missing.join(', ')}`;
+    return;
+  }
+  if (!confirm) {
+    s.className = 'bad';
+    s.textContent = 'Tick the review confirmation first.';
+    return;
+  }
+  st.signed_off = true;
+  st.signed_at = new Date().toISOString();
+  saveState(st);
+  s.className = 'ok';
+  s.textContent = `Signed off at ${st.signed_at}. Filing stays with you on the portal.`;
+  load();
+};
+
+document.getElementById('resetbtn').onclick = () => {
+  localStorage.removeItem(KEY);
+  document.getElementById('confirm').checked = false;
+  load();
+};
+
+load();
+</script>
+</body>
+</html>
