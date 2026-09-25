@@ -77,6 +77,7 @@
 <header>
   <h1>Artikl · CA checker demo</h1>
   <span class="tag">Never auto-file · Never touches GSTN</span>
+  <a href="artikl_sunrise_pack.xlsx" download>Download pack (.xlsx)</a>
   <a href="never-auto-fill.html">What we never auto-fill</a>
   <a href="../">← Landing</a>
   <nav class="tabs">
@@ -116,6 +117,7 @@
       <div class="card">
         <h2>Books pack (Excel) <span id="job-title" class="tag"></span></h2>
         <p class="banner">Blanks are intentional. Exception chips on the row = why. Only clean matches are fully filled.</p>
+        <p id="dl-pack" class="hidden" style="margin:.4rem 0 .6rem;"><a class="primary" href="artikl_sunrise_pack.xlsx" download style="display:inline-block;padding:.45rem .8rem;border-radius:8px;background:#1f3a5f;color:#fff;text-decoration:none;">Download pack (.xlsx)</a> <span class="banner">Summary with ITC tie-out (IGST/CGST/SGST), books pack, GSTR-2B mismatch, exception list.</span></p>
         <div style="overflow:auto; max-height:70vh;">
           <table id="books"><thead></thead><tbody></tbody></table>
         </div>
@@ -405,6 +407,7 @@ function renderChecker(){
   if(!job.signoff_started_at){ job.signoff_started_at = Date.now(); persistJob(job); }
   activePack = job.pack;
   document.getElementById('job-title').textContent = `· ${job.client_name}`;
+  document.getElementById('dl-pack').classList.toggle('hidden', job.source !== 'sample');
   const m = job.pack.metrics||{};
   document.getElementById('metrics-bar').innerHTML =
     `<span>dump→pack <b>${m.dump_to_pack_ms??'—'} ms</b></span>
