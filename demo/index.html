@@ -36,6 +36,8 @@
   .chip.high { background:rgba(232,93,93,.2); color:var(--high); }
   .chip.medium { background:rgba(224,168,74,.2); color:var(--med); }
   .chip.low { background:rgba(107,140,174,.2); color:var(--low); }
+  .plain { font-size:.7rem; opacity:.85; margin:0 0 .3rem; }
+  .plain-lg { font-weight:600; margin:.2rem 0 .3rem; }
   .chip.ok { background:rgba(61,186,122,.15); color:var(--ok); }
   .sev { font-size:.7rem; font-weight:700; text-transform:uppercase; padding:.15rem .4rem; border-radius:999px; }
   .sev.high { background:rgba(232,93,93,.2); color:var(--high); }
@@ -97,16 +99,21 @@
     </div>
     <div class="card">
       <h2>New job</h2>
+      <div class="btns" style="margin:.4rem 0 .5rem;">
+        <button type="button" class="primary" onclick="loadSampleJob()">Try with the Sunrise sample</button>
+      </div>
+      <p class="banner">Your own dump (PDFs, WhatsApp photos, Excel): send it to us at <a href="mailto:shetty.nith@gmail.com?subject=Artikl%20pilot%20dump">shetty.nith@gmail.com</a> and we'll return the pack.</p>
+      <details style="margin-top:.6rem;"><summary class="tag">Test-format upload (for our team)</summary>
       <label class="field">Client name</label>
       <input type="text" id="client-name" placeholder="e.g. Sunrise Retail Pvt Ltd" value=""/>
-      <label class="field">Dump workbook (xlsx with Extract_Candidate_Rows) — or use sample</label>
+      <label class="field">Dump workbook (test format)</label>
       <input type="file" id="dump-file" accept=".xlsx,.xls"/>
       <label class="field">GSTR-2B upload (JSON) — client-uploaded, not portal scrape</label>
       <input type="file" id="twob-file" accept=".json"/>
       <div class="btns" style="margin-top:.85rem;">
-        <button type="button" class="primary" onclick="createJobFromUploads()">Create job &amp; pack</button>
-        <button type="button" onclick="loadSampleJob()">Load Sunrise sample</button>
+        <button type="button" onclick="createJobFromUploads()">Create job &amp; pack</button>
       </div>
+      </details>
       <p id="job-msg" class="banner" style="margin-top:.75rem;"></p>
     </div>
   </section>
@@ -116,7 +123,7 @@
     <div class="grid2">
       <div class="card">
         <h2>Books pack (Excel) <span id="job-title" class="tag"></span></h2>
-        <p class="banner">Blanks are intentional. Exception chips on the row = why. Only clean matches are fully filled.</p>
+        <p class="banner">Blanks are intentional. The chip and the line under it on each row say why. Only clean matches are fully filled.</p>
         <p id="dl-pack" class="hidden" style="margin:.4rem 0 .6rem;"><a class="primary" href="artikl_sunrise_pack.xlsx" download style="display:inline-block;padding:.45rem .8rem;border-radius:8px;background:#1f3a5f;color:#fff;text-decoration:none;">Download pack (.xlsx)</a> <span class="banner">Summary with ITC tie-out (IGST/CGST/SGST), books pack, GSTR-2B mismatch, exception list.</span></p>
         <div style="overflow:auto; max-height:70vh;">
           <table id="books"><thead></thead><tbody></tbody></table>
@@ -140,7 +147,6 @@
     </div>
   </section>
 </main>
-<footer class="silent" id="silent-metrics">Silent pilot metrics logged locally in this browser only.</footer>
 
 <script>
 const JOBS_KEY = 'artikl-demo-jobs-v2';
@@ -169,6 +175,14 @@ const SHORT = {
   'INV-2407':'SaaS annual','INV-2408':'Car AC repair','INV-2409':'Plastic crates',
   'INV-2410':'Blurry phone photo','IMG-WA-991':'WhatsApp image too dark','INV-2401A':'Laptops batch A — resent'
 };
+const PLAIN = {
+  '2B_UNMATCHED':'Invoice not in client’s 2B', '2B_PARTIAL':'Tax in 2B doesn’t match bill',
+  GSTIN_INVALID:'Supplier GSTIN looks wrong', RCM_SUSPECT:'Possible reverse charge',
+  CN_VS_INV:'Credit note or invoice? Unclear', HSN_RATE_AMBIG:'GST rate unclear',
+  POS_AMBIGUOUS:'Place of supply unclear (IGST or CGST+SGST)', ITC_UNCLEAR:'ITC may be blocked',
+  PARTY_UNMAPPED:'Party name not in your ledgers', LOW_CONF_EXTRACT:'Scan unclear, amounts left blank',
+  DOC_UNREADABLE:'Can’t read the document', DUP_SUSPECT:'Looks like a duplicate'
+};
 const order = {high:0, medium:1, low:2};
 let activePack = null;
 
@@ -187,10 +201,10 @@ function getActiveId(){ return localStorage.getItem(ACTIVE_KEY); }
 function setActiveId(id){ localStorage.setItem(ACTIVE_KEY, id); }
 
 function chipHtml(codes){
-  if(!codes) return '<span class="chip ok">CLEAN</span>';
+  if(!codes) return '<span class="chip ok">CLEAN</span><div class="plain">Matches bill and 2B</div>';
   return String(codes).split(',').filter(Boolean).map(c=>{
     const sev = SEVERITY[c]||'medium';
-    return `<span class="chip ${sev}" title="${c}">${c}</span>`;
+    return `<div class="chipwrap"><span class="chip ${sev}" title="${c}">${c}</span><div class="plain">${PLAIN[c]||''}</div></div>`;
   }).join('');
 }
 
@@ -319,7 +333,7 @@ async function createJobFromUploads(){
   const dumpF = document.getElementById('dump-file').files[0];
   const twobF = document.getElementById('twob-file').files[0];
   if(!dumpF || !twobF){
-    msg.textContent = 'Need both dump xlsx and 2B JSON. Or click Load Sunrise sample.';
+    msg.textContent = 'Need both test files. Or click Try with the Sunrise sample.';
     return;
   }
   const id = `job-${Date.now()}`;
@@ -357,7 +371,7 @@ async function createJobFromUploads(){
   } catch(err){
     draft.status='Intake'; draft.error=String(err.message||err);
     saveJobs(jobs); renderJobs();
-    msg.textContent = 'Pack failed: '+draft.error+' (use sample schema or Load Sunrise sample)';
+    msg.textContent = 'Pack failed: '+draft.error+' (use Try with the Sunrise sample)';
   }
 }
 
@@ -365,12 +379,12 @@ function renderJobs(){
   const el = document.getElementById('job-list');
   const jobs = loadJobs();
   if(!jobs.length){
-    el.innerHTML = '<p class="banner">No jobs yet. Load the Sunrise sample or upload dump + 2B.</p>';
+    el.innerHTML = '<p class="banner">No jobs yet. Click “Try with the Sunrise sample” below.</p>';
     return;
   }
   el.innerHTML = jobs.map(j=>{
     const m = j.pack?.metrics;
-    const met = m ? `<span class="metrics"><span>pack <b>${m.dump_to_pack_ms}ms</b></span><span>filled <b>${m.pct_filled}%</b></span><span>exceptioned <b>${m.pct_exceptioned}%</b></span>${m.time_to_signoff_ms!=null?`<span>sign-off <b>${Math.round(m.time_to_signoff_ms/1000)}s</b></span>`:''}</span>` : '';
+    const met = m ? `<span class="metrics"><span>rows fully filled <b>${m.rows_fully_filled??0} of ${m.rows_total??0}</b></span></span>` : '';
     return `<div class="jobrow">
       <div><b>${j.client_name}</b><div class="tag">${j.gstin||'—'} · ${j.period||'—'} · ${j.source}</div>${met}</div>
       <div><span class="st ${j.status}">${j.status}</span></div>
@@ -410,14 +424,9 @@ function renderChecker(){
   document.getElementById('dl-pack').classList.toggle('hidden', job.source !== 'sample');
   const m = job.pack.metrics||{};
   document.getElementById('metrics-bar').innerHTML =
-    `<span>dump→pack <b>${m.dump_to_pack_ms??'—'} ms</b></span>
-     <span>rows filled <b>${m.rows_fully_filled??0}/${m.rows_total??0}</b> (${m.pct_filled??0}%)</span>
-     <span>exceptioned <b>${m.pct_exceptioned??0}%</b></span>
-     <span>time-to-sign-off <b>${m.time_to_signoff_ms!=null?Math.round(m.time_to_signoff_ms/1000)+'s':'—'}</b></span>`;
-  document.getElementById('silent-metrics').textContent =
-    `Silent metrics (this browser): dump→pack ${m.dump_to_pack_ms}ms · filled ${m.pct_filled}% · exceptioned ${m.pct_exceptioned}%` +
-    (m.time_to_signoff_ms!=null?` · sign-off ${Math.round(m.time_to_signoff_ms/1000)}s`:'') +
-    '. Not sent anywhere.';
+    `<span>rows fully filled <b>${m.rows_fully_filled??0} of ${m.rows_total??0}</b></span>
+     <span>rows flagged for you <b>${(m.rows_total??0)-(m.rows_fully_filled??0)}</b></span>`;
+
 
   const cols = ['party','date','voucher_type','amount','tax','hsn_sac','gstin','narration','why'];
   const th = document.querySelector('#books thead');
@@ -437,6 +446,7 @@ function renderChecker(){
     const cur = (job.decisions||{})[key]||'';
     return `<div class="ex ${e.severity}">
       <h3><span class="sev ${e.severity}">${e.severity}</span> <span class="chip ${e.severity}">${e.code}</span> · ${e.source_doc}</h3>
+      <p class="plain-lg">${PLAIN[e.code]||''}</p>
       <p><b>Field:</b> ${e.field}</p>
       <p>${e.reason}</p>
       <p><b>Suggested:</b> ${e.suggested_action}</p>
